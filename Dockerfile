@@ -31,6 +31,9 @@ RUN pip install --upgrade pip
 # Install PyTorch with CUDA 11.8 support
 RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 
+# Install Nvdiffrast
+RUN pip install --no-build-isolation git+https://github.com/NVlabs/nvdiffrast.git
+
 WORKDIR /workspace
 COPY . .
 
