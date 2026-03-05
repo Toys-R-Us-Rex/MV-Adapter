@@ -1,0 +1,17 @@
+FROM pytorch/pytorch:2.7.0-cuda12.8-cudnn9-devel
+
+RUN apt-get update && \
+    apt-get install -y \
+    git-lfs curl wget git git-all axel nload libgl1-mesa-glx build-essential gcc g++ \
+    htop unzip openssh-server net-tools tree neofetch vim speedometer ffmpeg  && \
+    apt-get -y autoremove && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --upgrade pip && pip cache purge
+
+WORKDIR /workspace
+
+COPY . .
+
+RUN pip install -r requirements.txt
+
+CMD ["bash"]
