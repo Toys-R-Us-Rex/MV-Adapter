@@ -1,28 +1,31 @@
-controlnet_aux==0.0.10
-diffusers==0.36.0
-transformers==5.2.0
-peft==0.18.1
-numpy==2.2.6
-huggingface_hub==1.4.1
-accelerate==1.12.0
-opencv-python==4.13.0.92
-safetensors==0.7.0
-pillow==12.0.0
-omegaconf==2.3.0
-trimesh==4.11.2
-einops==0.8.2
-gradio==6.6.0
-timm==1.0.24
-kornia==0.8.2
-scikit-image==0.25.2
-sentencepiece==0.2.1
+controlnet_aux
+diffusers
+transformers
+peft
+numpy
+huggingface_hub
+accelerate
+opencv-python
+safetensors
+pillow
+omegaconf
+trimesh
+einops
+gradio
+timm
+kornia
+scikit-image
+sentencepiece
 git+https://github.com/NVlabs/nvdiffrast.git
 
 # new added for training
-pytorch-lightning==2.6.1
+pytorch-lightning
 
 # new added for texturing
-spandrel==0.4.1
-open3d==0.19.0
-pymeshlab==2025.7.post1
-cvcuda_cu12==0.16.0
+spandrel
+open3d
+pymeshlab
+cvcuda_cu12
+
+jaxtyping
+typeguard
