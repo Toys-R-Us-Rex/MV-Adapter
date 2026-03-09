@@ -17,11 +17,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libegl1-mesa-dev \
     libgles2-mesa-dev \
     libosmesa6-dev \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --upgrade pip && pip cache purge
 
 WORKDIR /workspace
+
+ADD https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth ./checkpoints/RealESRGAN_x2plus.pth
+ADD https://github.com/Sanster/models/releases/download/add_big_lama/big-lama.pt ./checkpoints/big-lama.pt
+
 
 COPY . .
 
