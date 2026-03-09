@@ -36,7 +36,7 @@ if __name__ == "__main__":
     elif args.variant == "sd21":
         from .inference_ig2mv_sd import prepare_pipeline, remove_bg, run_pipeline
 
-        base_model = "stabilityai/stable-diffusion-2-1-base"
+        base_model = "Manojb/stable-diffusion-2-1-base"
         vae_model = None
         height = width = 512
         uv_size = 2048
