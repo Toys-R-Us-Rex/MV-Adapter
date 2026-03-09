@@ -1,52 +1,35 @@
-FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
+FROM nvidia/cuda:12.1.1-devel-ubuntu22.04
 
-LABEL org.opencontainers.image.source=https://github.com/Toys-R-Us-Rex/MV-Adapter
+ENV TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;8.9;9.0"
 
-# Avoid interactive prompts during package installation
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PYTHONUNBUFFERED=1
+COPY --from=continuumio/miniconda3:4.12.0 /opt/conda /opt/conda
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+ENV PATH=/opt/conda/bin:$PATH
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.10 \
-    python3.10-dev \
     python3-pip \
+    python3-dev \
     git \
-    wget \
-    curl \
+    ninja-build \
     libgl1-mesa-glx \
     libglib2.0-0 \
-    libsm6 \
-    libxrender1 \
-    libxext6 \
+    libegl1-mesa-dev \
+    libgles2-mesa-dev \
+    libosmesa6-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Set python3.10 as default
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1 && \
-    update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
-
-# Upgrade pip
-RUN pip install --upgrade pip
-
-# Install PyTorch with CUDA 11.8 support
-RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-
-# Install Nvdiffrast
-RUN pip install --no-build-isolation git+https://github.com/NVlabs/nvdiffrast.git
+RUN pip install --upgrade pip && pip cache purge
 
 WORKDIR /workspace
+
 COPY . .
 
-# Install Python dependencies
-RUN pip install -r requirements.txt
+RUN conda create -n mvadapter python=3.10
+ENV PATH=/opt/conda/envs/mvadapter/bin:$PATH
 
-# Install the package in editable mode (if setup.py exists)
-RUN pip install -e .
+RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
-# Create output directory
-RUN mkdir -p /workspace/outputs /workspace/checkpoints
-
-# Expose port for Gradio demo (default: 7860)
-EXPOSE 7860
+RUN pip install --no-build-isolation -r requirements.txt
 
 CMD ["bash"]
