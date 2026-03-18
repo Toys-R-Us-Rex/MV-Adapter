@@ -118,7 +118,7 @@ if __name__ == "__main__":
         save_dir=args.save_dir,
         save_name=args.save_name,
         uv_unwarp=False,
-        preprocess_mesh=True,
+        preprocess_mesh=False,
         uv_size=uv_size,
         rgb_path=mv_path,
         rgb_process_config=ModProcessConfig(view_upscale=True, inpaint_mode="view"),
