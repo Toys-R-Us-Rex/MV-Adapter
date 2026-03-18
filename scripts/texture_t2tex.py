@@ -1,11 +1,15 @@
 import argparse
 import os
 import sys
-
+import random
 import torch
-
+import datetime
 from mvadapter.pipelines.pipeline_texture import ModProcessConfig, TexturePipeline
 from mvadapter.utils import make_image_grid
+
+import json
+from PIL import PngImagePlugin
+from pygltflib import GLTF2
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -17,6 +21,10 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=-1)
     parser.add_argument("--save_dir", type=str, default="./output")
     parser.add_argument("--save_name", type=str, default="t2tex_sample")
+    parser.add_argument("--guidance_scale", type=float, default=7.0)
+    parser.add_argument("--num_inference_steps", type=int, default=50)
+    parser.add_argument("--negative_text", type=str, default="watermark, ugly, deformed, noisy, blurry, low contrast")
+    
     # Extra
     parser.add_argument("--preprocess_mesh", action="store_true")
     args = parser.parse_args()
@@ -24,17 +32,17 @@ if __name__ == "__main__":
     if args.variant == "sdxl":
         from .inference_tg2mv_sdxl import prepare_pipeline, run_pipeline
 
-        base_model = "stabilityai/stable-diffusion-xl-base-1.0"
+        base_model = "Lykon/dreamshaper-xl-1-0"
         vae_model = "madebyollin/sdxl-vae-fp16-fix"
         height = width = 768
-        uv_size = 4096
+        uv_size = 1024
     elif args.variant == "sd21":
         from .inference_tg2mv_sd import prepare_pipeline, run_pipeline
 
         base_model = "Manojb/stable-diffusion-2-1-base"
         vae_model = None
         height = width = 512
-        uv_size = 2048
+        uv_size = 4096
     else:
         raise ValueError(f"Invalid variant: {args.variant}")
 
@@ -61,8 +69,9 @@ if __name__ == "__main__":
     print("Pipeline ready.")
 
     os.makedirs(args.save_dir, exist_ok=True)
-
-    # 1. run MV-Adapter to generate multi-view images
+    
+    if args.seed == -1:
+        args.seed = random.randint(0, 2147483647)
     images, pos_images, normal_images = run_pipeline(
         pipe,
         mesh_path=args.mesh,
@@ -70,27 +79,50 @@ if __name__ == "__main__":
         text=args.text,
         height=height,
         width=width,
-        num_inference_steps=50,
-        guidance_scale=7.0,
+        num_inference_steps=args.num_inference_steps,
+        guidance_scale=args.guidance_scale,
         seed=args.seed,
-        negative_prompt="watermark, ugly, deformed, noisy, blurry, low contrast",
+        negative_prompt=args.negative_text,
         device=device,
     )
     mv_path = os.path.join(args.save_dir, f"{args.save_name}.png")
-    make_image_grid(images, rows=1).save(mv_path)
+    
+    metadata_dict = {
+        "prompt": args.text,
+        "negative_prompt": args.negative_text,
+        "seed": args.seed,
+        "steps": args.num_inference_steps,
+        "guidance": args.guidance_scale,
+        "base_model": base_model,
+        "height": height,
+        "width": width,
+        "vae_model": vae_model,
+        "uv_size": uv_size,
+        "num_views": num_views,
+        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    
+    metadata_png = PngImagePlugin.PngInfo()
+    metadata_png.add_text("parameters", json.dumps(metadata_dict))
+    
+    make_image_grid(images, rows=1).save(mv_path, pnginfo=metadata_png)
+    
+    json_path = os.path.join(args.save_dir, f"{args.save_name}_meta.json")
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(metadata_dict, f, indent=4)
 
     torch.cuda.empty_cache()
 
-    # 2. un-project and complete texture
     out = texture_pipe(
         mesh_path=args.mesh,
         save_dir=args.save_dir,
         save_name=args.save_name,
-        uv_unwarp=True,
-        preprocess_mesh=args.preprocess_mesh,
+        uv_unwarp=False,
+        preprocess_mesh=False,
         uv_size=uv_size,
         rgb_path=mv_path,
         rgb_process_config=ModProcessConfig(view_upscale=True, inpaint_mode="view"),
-        camera_azimuth_deg=[x - 90 for x in [0, 90, 180, 270, 180, 180]],
+        debug_mode=False
     )
     print(f"Output saved to {out.shaded_model_save_path}")
+    

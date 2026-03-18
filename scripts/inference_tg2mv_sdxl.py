@@ -82,7 +82,7 @@ def run_pipeline(
 ):
     # Prepare cameras
     cameras = get_orthogonal_camera(
-        elevation_deg=[0, 0, 0, 0, 89.99, -89.99],
+        elevation_deg=[0, 0, 0, 0,89.99, -89.99],
         distance=[1.8] * num_views,
         left=-0.55,
         right=0.55,
@@ -131,7 +131,7 @@ def run_pipeline(
         guidance_scale=guidance_scale,
         num_images_per_prompt=num_views,
         control_image=control_images,
-        control_conditioning_scale=1.0,
+        control_conditioning_scale=1.2,
         negative_prompt=negative_prompt,
         cross_attention_kwargs={"scale": lora_scale},
         **pipe_kwargs,
