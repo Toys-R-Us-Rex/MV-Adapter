@@ -140,7 +140,7 @@ class TexturePipeline:
         save_name: str = "default",
         # mesh load settings
         move_to_center: bool = False,
-        front_x: bool = True,
+        front_x: bool = False,
         # uv unwarp
         uv_unwarp: bool = False,
         preprocess_mesh: bool = False,

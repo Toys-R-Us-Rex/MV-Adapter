@@ -6,10 +6,11 @@ import torch
 import datetime
 from mvadapter.pipelines.pipeline_texture import ModProcessConfig, TexturePipeline
 from mvadapter.utils import make_image_grid
-
+from .extract_uv import extract_uv_texture
 import json
 from PIL import PngImagePlugin
 from pygltflib import GLTF2
+from pathlib import Path
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -124,5 +125,9 @@ if __name__ == "__main__":
         rgb_process_config=ModProcessConfig(view_upscale=True, inpaint_mode="view"),
         debug_mode=False
     )
-    print(f"Output saved to {out.shaded_model_save_path}")
+    
+    uv_png_path = Path(args.save_dir) / f"{args.save_name}_uv.png"
+    
+    extract_uv_texture(str(out.shaded_model_save_path), str(uv_png_path))
+    print(f"Output saved to {uv_png_path}")
     
