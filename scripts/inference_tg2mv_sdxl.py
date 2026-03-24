@@ -9,7 +9,6 @@ from mvadapter.schedulers.scheduling_shift_snr import ShiftSNRScheduler
 from mvadapter.utils import get_orthogonal_camera, make_image_grid, tensor_to_image
 from mvadapter.utils.mesh_utils import NVDiffRastContextWrapper, load_mesh, render
 
-
 def prepare_pipeline(
     base_model,
     vae_model,
@@ -51,6 +50,8 @@ def prepare_pipeline(
     pipe.load_custom_adapter(
         adapter_path, weight_name="mvadapter_tg2mv_sdxl.safetensors"
     )
+    
+    #pipe.enable_freeu(s1=0.9, s2=0.2, b1=1.3, b2=1.4)
 
     pipe.to(device=device, dtype=dtype)
     pipe.cond_encoder.to(device=device, dtype=dtype)
@@ -77,8 +78,9 @@ def run_pipeline(
     guidance_scale,
     seed,
     negative_prompt,
+    uv_size,
     lora_scale=1.0,
-    device="cuda",
+    device="cuda"
 ):
     # Prepare cameras
     cameras = get_orthogonal_camera(
@@ -93,7 +95,7 @@ def run_pipeline(
     )
     ctx = NVDiffRastContextWrapper(device=device)
 
-    mesh = load_mesh(mesh_path, rescale=True, device=device)
+    mesh = load_mesh(mesh_path, rescale=True, device=device,default_uv_size=uv_size)
     render_out = render(
         ctx,
         mesh,
