@@ -29,4 +29,4 @@ cvcuda_cu12
 
 jaxtyping
 typeguard
-gltflib
+pygltflib
