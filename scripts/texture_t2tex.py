@@ -11,7 +11,16 @@ import json
 from PIL import PngImagePlugin
 from pygltflib import GLTF2
 from pathlib import Path
+import shutil
+from .benchmark.render_rw import get_views
+from .benchmark.openclip_rw import evaluate_folder as evaluate_folder_openclip
+from .benchmark.nima_rw import evaluate_folder as evaluate_folder_nima
+import json
 
+
+
+OPENCLIP_FILENAME = "openclip_data.json"
+NIMA_FILENAME = "nima_data.json"
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", type=str, default="cuda")
@@ -72,13 +81,11 @@ if __name__ == "__main__":
     print("Pipeline ready.")
 
     os.makedirs(args.save_dir, exist_ok=True)
-    
+    print(args.num_generations)
     for i in range(args.num_generations):
         seed = random.randint(0, 2147483647) if args.seed == -1 else args.seed
         os.makedirs(os.path.join(args.save_dir, f"{i}"), exist_ok=True)
     
-        if args.seed == -1:
-            args.seed = random.randint(0, 2147483647)
         images, pos_images, normal_images = run_pipeline(
             pipe,
             mesh_path=args.mesh,
@@ -88,7 +95,7 @@ if __name__ == "__main__":
             width=width,
             num_inference_steps=args.num_inference_steps,
             guidance_scale=args.guidance_scale,
-            seed=args.seed,
+            seed=seed,
             negative_prompt=args.negative_text,
             device=device,
         )
@@ -97,7 +104,7 @@ if __name__ == "__main__":
         metadata_dict = {
             "prompt": args.text,
             "negative_prompt": args.negative_text,
-            "seed": args.seed,
+            "seed": seed,
             "steps": args.num_inference_steps,
             "guidance": args.guidance_scale,
             "base_model": base_model,
@@ -132,8 +139,47 @@ if __name__ == "__main__":
             debug_mode=False
         )
         
-        uv_png_path = Path(args.save_dir) / f"{i}" / f"{args.save_name}_uv.png"
+        base_folder_path = Path(args.save_dir) / f"{i}"
+        uv_png_path = base_folder_path / "texture.png"
         
         extract_uv_texture(str(out.shaded_model_save_path), str(uv_png_path))
+        
+        model_output_path = base_folder_path / f"textured.glb"
+        shutil.copy(out.shaded_model_save_path,model_output_path)
+        
+        if args.benchmark_activated == "True":
+        
+            views = get_views(model_output_path)
+            folder_data = evaluate_folder_openclip(
+            views=views,
+            device=device,
+            prompt=args.text,
+            )
+            
+            openclip_json_path = base_folder_path / OPENCLIP_FILENAME
+            with open(openclip_json_path, "w", encoding="utf-8") as f:
+                json.dump(folder_data, f, indent=4)
+                
+                
+            views = get_views(model_output_path)
+            folder_data = evaluate_folder_nima(
+                views=views,
+                device=device,
+                prompt=args.text,
+            )
+            nima_json_path = base_folder_path / NIMA_FILENAME
+            with open(nima_json_path, "w", encoding="utf-8") as f:
+                json.dump(folder_data, f, indent=4)
+            
+        uv_png_path = base_folder_path / "texture.png"
+        
+        extract_uv_texture(str(out.shaded_model_save_path), str(uv_png_path))
+        
+        model_output_path = base_folder_path / f"textured.glb"
+        shutil.copy(out.shaded_model_save_path,model_output_path)
+    
+            
+              
+        
         print(f"Output saved to {uv_png_path}")
     
