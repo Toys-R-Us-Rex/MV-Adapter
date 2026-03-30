@@ -15,6 +15,7 @@ import shutil
 from .benchmark.render_rw import get_views
 from .benchmark.openclip_rw import evaluate_folder as evaluate_folder_openclip
 from .benchmark.nima_rw import evaluate_folder as evaluate_folder_nima
+from .benchmark.rank_rw import rank_generations
 import json
 
 
@@ -170,16 +171,12 @@ if __name__ == "__main__":
             nima_json_path = base_folder_path / NIMA_FILENAME
             with open(nima_json_path, "w", encoding="utf-8") as f:
                 json.dump(folder_data, f, indent=4)
+                
+                
+            rank_generations(run_dir=base_folder_path, top_k=3, nima_json_name=NIMA_FILENAME, openclip_json_name=OPENCLIP_FILENAME)
+            print("Benchmarking completed. - ranking saved in ranking.json")    
             
-        uv_png_path = base_folder_path / "texture.png"
-        
-        extract_uv_texture(str(out.shaded_model_save_path), str(uv_png_path))
-        
-        model_output_path = base_folder_path / f"textured.glb"
-        shutil.copy(out.shaded_model_save_path,model_output_path)
-    
             
-              
-        
+                    
         print(f"Output saved to {uv_png_path}")
     
