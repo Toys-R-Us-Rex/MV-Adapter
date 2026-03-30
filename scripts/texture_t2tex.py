@@ -25,6 +25,8 @@ if __name__ == "__main__":
     parser.add_argument("--guidance_scale", type=float, default=7.0)
     parser.add_argument("--num_inference_steps", type=int, default=50)
     parser.add_argument("--negative_text", type=str, default="watermark, ugly, deformed, noisy, blurry, low contrast")
+    parser.add_argument("--num_generations", type=int, default=1)
+    parser.add_argument("--benchmark_activated", type=bool, default=False)
     
     # Extra
     parser.add_argument("--preprocess_mesh", action="store_true")
@@ -71,63 +73,67 @@ if __name__ == "__main__":
 
     os.makedirs(args.save_dir, exist_ok=True)
     
-    if args.seed == -1:
-        args.seed = random.randint(0, 2147483647)
-    images, pos_images, normal_images = run_pipeline(
-        pipe,
-        mesh_path=args.mesh,
-        num_views=num_views,
-        text=args.text,
-        height=height,
-        width=width,
-        num_inference_steps=args.num_inference_steps,
-        guidance_scale=args.guidance_scale,
-        seed=args.seed,
-        negative_prompt=args.negative_text,
-        device=device,
-    )
-    mv_path = os.path.join(args.save_dir, f"{args.save_name}.png")
+    for i in range(args.num_generations):
+        seed = random.randint(0, 2147483647) if args.seed == -1 else args.seed
+        os.makedirs(os.path.join(args.save_dir, f"{i}"), exist_ok=True)
     
-    metadata_dict = {
-        "prompt": args.text,
-        "negative_prompt": args.negative_text,
-        "seed": args.seed,
-        "steps": args.num_inference_steps,
-        "guidance": args.guidance_scale,
-        "base_model": base_model,
-        "height": height,
-        "width": width,
-        "vae_model": vae_model,
-        "uv_size": uv_size,
-        "num_views": num_views,
-        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-    
-    metadata_png = PngImagePlugin.PngInfo()
-    metadata_png.add_text("parameters", json.dumps(metadata_dict))
-    
-    make_image_grid(images, rows=1).save(mv_path, pnginfo=metadata_png)
-    
-    json_path = os.path.join(args.save_dir, f"{args.save_name}_meta.json")
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(metadata_dict, f, indent=4)
+        if args.seed == -1:
+            args.seed = random.randint(0, 2147483647)
+        images, pos_images, normal_images = run_pipeline(
+            pipe,
+            mesh_path=args.mesh,
+            num_views=num_views,
+            text=args.text,
+            height=height,
+            width=width,
+            num_inference_steps=args.num_inference_steps,
+            guidance_scale=args.guidance_scale,
+            seed=args.seed,
+            negative_prompt=args.negative_text,
+            device=device,
+        )
+        mv_path = os.path.join(args.save_dir, f"{i}", f"{args.save_name}.png")
+        
+        metadata_dict = {
+            "prompt": args.text,
+            "negative_prompt": args.negative_text,
+            "seed": args.seed,
+            "steps": args.num_inference_steps,
+            "guidance": args.guidance_scale,
+            "base_model": base_model,
+            "height": height,
+            "width": width,
+            "vae_model": vae_model,
+            "uv_size": uv_size,
+            "num_views": num_views,
+            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        metadata_png = PngImagePlugin.PngInfo()
+        metadata_png.add_text("parameters", json.dumps(metadata_dict))
+        
+        make_image_grid(images, rows=1).save(mv_path, pnginfo=metadata_png)
+        
+        json_path = os.path.join(args.save_dir, f"{i}", f"{args.save_name}_meta.json")
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(metadata_dict, f, indent=4)
 
-    torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
-    out = texture_pipe(
-        mesh_path=args.mesh,
-        save_dir=args.save_dir,
-        save_name=args.save_name,
-        uv_unwarp=False,
-        preprocess_mesh=False,
-        uv_size=uv_size,
-        rgb_path=mv_path,
-        rgb_process_config=ModProcessConfig(view_upscale=True, inpaint_mode="view"),
-        debug_mode=False
-    )
-    
-    uv_png_path = Path(args.save_dir) / f"{args.save_name}_uv.png"
-    
-    extract_uv_texture(str(out.shaded_model_save_path), str(uv_png_path))
-    print(f"Output saved to {uv_png_path}")
+        out = texture_pipe(
+            mesh_path=args.mesh,
+            save_dir=args.save_dir,
+            save_name=args.save_name,
+            uv_unwarp=False,
+            preprocess_mesh=False,
+            uv_size=uv_size,
+            rgb_path=mv_path,
+            rgb_process_config=ModProcessConfig(view_upscale=True, inpaint_mode="view"),
+            debug_mode=False
+        )
+        
+        uv_png_path = Path(args.save_dir) / f"{i}" / f"{args.save_name}_uv.png"
+        
+        extract_uv_texture(str(out.shaded_model_save_path), str(uv_png_path))
+        print(f"Output saved to {uv_png_path}")
     
