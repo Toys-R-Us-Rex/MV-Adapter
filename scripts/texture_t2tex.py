@@ -36,7 +36,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_inference_steps", type=int, default=50)
     parser.add_argument("--negative_text", type=str, default="watermark, ugly, deformed, noisy, blurry, low contrast")
     parser.add_argument("--num_generations", type=int, default=1)
-    parser.add_argument("--benchmark_activated", type=bool, default=False)
+    parser.add_argument("--benchmark_activated", type=str, default="False")
     
     # Extra
     parser.add_argument("--preprocess_mesh", action="store_true")
@@ -82,7 +82,9 @@ if __name__ == "__main__":
     print("Pipeline ready.")
 
     os.makedirs(args.save_dir, exist_ok=True)
-    print(args.num_generations)
+    
+    base_folder_path = Path(args.save_dir)
+    
     for i in range(args.num_generations):
         seed = random.randint(0, 2147483647) if args.seed == -1 else args.seed
         os.makedirs(os.path.join(args.save_dir, f"{i}"), exist_ok=True)
@@ -140,43 +142,40 @@ if __name__ == "__main__":
             debug_mode=False
         )
         
-        base_folder_path = Path(args.save_dir) / f"{i}"
-        uv_png_path = base_folder_path / "texture.png"
+        
+        gen_folder_path = base_folder_path / f"{i}"
+        uv_png_path = gen_folder_path / "textured.png"
         
         extract_uv_texture(str(out.shaded_model_save_path), str(uv_png_path))
         
-        model_output_path = base_folder_path / f"textured.glb"
+        model_output_path = gen_folder_path / f"textured.glb"
         shutil.copy(out.shaded_model_save_path,model_output_path)
         
         if args.benchmark_activated == "True":
-        
             views = get_views(model_output_path)
             folder_data = evaluate_folder_openclip(
-            views=views,
-            device=device,
-            prompt=args.text,
-            )
-            
-            openclip_json_path = base_folder_path / OPENCLIP_FILENAME
-            with open(openclip_json_path, "w", encoding="utf-8") as f:
-                json.dump(folder_data, f, indent=4)
-                
-                
-            views = get_views(model_output_path)
-            folder_data = evaluate_folder_nima(
                 views=views,
                 device=device,
                 prompt=args.text,
             )
-            nima_json_path = base_folder_path / NIMA_FILENAME
+            
+            openclip_json_path = gen_folder_path / OPENCLIP_FILENAME
+            with open(openclip_json_path, "w", encoding="utf-8") as f:
+                json.dump(folder_data, f, indent=4)
+            
+            
+            folder_data = evaluate_folder_nima(
+                views=views,
+                device=device
+            )
+            nima_json_path = gen_folder_path / NIMA_FILENAME
             with open(nima_json_path, "w", encoding="utf-8") as f:
                 json.dump(folder_data, f, indent=4)
-                
-                
-            rank_generations(run_dir=base_folder_path, top_k=3, nima_json_name=NIMA_FILENAME, openclip_json_name=OPENCLIP_FILENAME)
-            print("Benchmarking completed. - ranking saved in ranking.json")    
-            
-            
-                    
-        print(f"Output saved to {uv_png_path}")
-    
+       
+       
+    if args.benchmark_activated == "True":         
+        print("All generations completed. Starting ranking...")
+        rank_generations(run_dir=base_folder_path, top_k=3, nima_json_name=NIMA_FILENAME, openclip_json_name=OPENCLIP_FILENAME)
+        print("Benchmarking completed. - ranking saved in ranking.json")            
+    print(f"Output saved to {uv_png_path}")
+        

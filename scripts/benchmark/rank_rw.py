@@ -105,15 +105,10 @@ def list_generation_dirs(run_dir: Path) -> list[Path]:
     gen_dirs = []
     # collect generation folders
 
-    for p in run_dir.iterdir():
-        # loop over items in run folder
-        if p.is_dir() and p.name.startswith("gen_"):
-            gen_dirs.append(p)
-            # keep only gen_* folders
-
-    return sorted(gen_dirs, key=lambda x: x.name)
-    # sort by folder name
-
+    return sorted(
+        [d for d in run_dir.iterdir() if d.is_dir()],
+        key=lambda x: x.name
+    )
 
 def copy_best_generations(top_entries: list[dict], best_dir: Path) -> None:
     if best_dir.exists():
@@ -141,8 +136,6 @@ def rank_generations(run_dir: str, top_k: int = 3, nima_json_name: str = "nima.j
         raise NotADirectoryError(f"Run directory does not exist: {run_dir}")
     
     gen_dirs = list_generation_dirs(run_dir)
-    if not gen_dirs:
-        raise RuntimeError(f"No gen_* folders found in: {run_dir}")
     
     ranking = [compute_scores(gen_dir, nima_json_name, openclip_json_name) for gen_dir in gen_dirs]
     ranking.sort(key=lambda x: x["final_score"], reverse=True)
