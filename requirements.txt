@@ -30,3 +30,8 @@ cvcuda_cu12
 jaxtyping
 typeguard
 pygltflib
+
+open_clip_torch
+pyiqa
+pyrender
+
