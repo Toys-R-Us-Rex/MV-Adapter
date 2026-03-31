@@ -142,11 +142,11 @@ if __name__ == "__main__":
             debug_mode=False
         )
         
-        uv_png_path = gen_folder_path / "textured.png"
+        uv_png_path = gen_folder_path / "texture.png"
         
         extract_uv_texture(str(out.shaded_model_save_path), str(uv_png_path))
         
-        model_output_path = gen_folder_path / f"textured.glb"
+        model_output_path = gen_folder_path / f"texture.glb"
         shutil.copy(out.shaded_model_save_path,model_output_path)
         
         if args.benchmark_activated == "True":
