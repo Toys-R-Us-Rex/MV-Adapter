@@ -86,8 +86,9 @@ if __name__ == "__main__":
     base_folder_path = Path(args.save_dir)
     
     for i in range(args.num_generations):
+        gen_folder_path = base_folder_path / str(i)
         seed = random.randint(0, 2147483647) if args.seed == -1 else args.seed
-        os.makedirs(os.path.join(args.save_dir, f"{i}"), exist_ok=True)
+        gen_folder_path.mkdir(parents=True, exist_ok=True)
     
         images, pos_images, normal_images = run_pipeline(
             pipe,
@@ -102,7 +103,7 @@ if __name__ == "__main__":
             negative_prompt=args.negative_text,
             device=device,
         )
-        mv_path = os.path.join(args.save_dir, f"{i}", f"{args.save_name}.png")
+        mv_path = gen_folder_path / f"{args.save_name}.png"
         
         metadata_dict = {
             "prompt": args.text,
@@ -123,8 +124,7 @@ if __name__ == "__main__":
         metadata_png.add_text("parameters", json.dumps(metadata_dict))
         
         make_image_grid(images, rows=1).save(mv_path, pnginfo=metadata_png)
-        
-        json_path = os.path.join(args.save_dir, f"{i}", f"{args.save_name}_meta.json")
+        json_path = gen_folder_path / f"{args.save_name}_meta.json"
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(metadata_dict, f, indent=4)
 
@@ -142,8 +142,6 @@ if __name__ == "__main__":
             debug_mode=False
         )
         
-        
-        gen_folder_path = base_folder_path / f"{i}"
         uv_png_path = gen_folder_path / "textured.png"
         
         extract_uv_texture(str(out.shaded_model_save_path), str(uv_png_path))
